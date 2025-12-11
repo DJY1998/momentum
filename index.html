@@ -231,6 +231,16 @@
     .ball2-color { color: #64b5f6; font-weight: 700; }
     .total-color { color: #ffffff; font-weight: 700; }
 
+    .hidden { display: none; }
+
+    .toggle-btn {
+      margin-top: 6px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      opacity: 0.6;
+      background: rgba(255,255,255,0.05);
+    }
+
     @media (max-width: 700px) {
       h1 { font-size: 1.4rem; }
       .container { padding: 12px; }
@@ -248,8 +258,8 @@
 
     <!-- CONTROLS -->
     <div class="panel">
-      <div class="pill">Phase 1 – Choix de la situation & prédiction</div>
-      <h2>Réglez les paramètres, discutez, puis lancez la collision</h2>
+      <div class="pill">Phase 1 - Régler les paramètres et lancer la collision</div>
+      <button class="ghost toggle-btn" id="presetToggle">Afficher cas 1 / cas 2</button>
       <div class="controls-grid">
         <div class="control-group m1">
           <h3>Bille 1 (à gauche)</h3>
@@ -282,7 +292,7 @@
           <input class="slider2" type="range" id="v2Slider" min="-4" max="4" step="0.1" value="0">
         </div>
 
-        <div class="control-group">
+        <div class="control-group hidden" id="presetGroup">
           <h3>Scénarios cas 1 / cas 2</h3>
           <button class="secondary" id="presetCase1">
             Cas 1
@@ -348,12 +358,6 @@
         </tbody>
       </table>
 
-      <div class="explanation">
-        <strong>Idée à faire émerger :</strong><br>
-        • La quantité de mouvement totale se conserve (ligne jaune p<sub>total</sub>) lors de la collision élastique.<br>
-        • L’énergie totale aussi, mais elle ne prédit pas directement “qui repart vite” : la masse joue un rôle différent pour p et pour E.<br>
-        • La quantité de mouvement est la grandeur la plus directement liée à l’<em>effet du choc</em> (ce que chaque bille transmet à l’autre).
-      </div>
     </div>
   </div>
 
@@ -374,6 +378,8 @@
     const resultsBtn = document.getElementById('resultsBtn');
     const presetCase1 = document.getElementById('presetCase1');
     const presetCase2 = document.getElementById('presetCase2');
+    const presetToggle = document.getElementById('presetToggle');
+    const presetGroup = document.getElementById('presetGroup');
 
     const canvas = document.getElementById('scene');
     const ctx = canvas.getContext('2d');
@@ -705,6 +711,17 @@
       initialE1 = computeKineticEnergy(m1, v1);
       initialE2 = computeKineticEnergy(m2, v2);
       drawScene();
+    });
+
+    presetToggle.addEventListener('click', () => {
+      const isHidden = presetGroup.classList.contains('hidden');
+      if (isHidden) {
+        presetGroup.classList.remove('hidden');
+        presetToggle.textContent = "Masquer cas 1 / cas 2";
+      } else {
+        presetGroup.classList.add('hidden');
+        presetToggle.textContent = "Afficher cas 1 / cas 2";
+      }
     });
 
     // Init
