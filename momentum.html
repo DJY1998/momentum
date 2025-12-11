@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>1D Collisions – Quantity of Motion & Energy</title>
+  <style>
+    :root {
+      --bg: #050607;
+      --panel: rgba(255, 255, 255, 0.06);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text: #eef1f5;
+      --muted: #9aa3b5;
+      --accent-orange: #ff9800;
+      --accent-orange-strong: #ff6d00;
+      --accent-blue: #42a5f5;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "SF Pro Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(140% 140% at 20% 20%, rgba(255,152,0,0.18), transparent 35%),
+                  radial-gradient(120% 120% at 80% 0%, rgba(255,109,0,0.18), transparent 40%),
+                  var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin: 18px 0 6px;
+      font-size: 1.8rem;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+
+    .container {
+      max-width: 1100px;
+      width: 100%;
+      padding: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .panel h2 {
+      font-size: 1.1rem;
+      margin: 2px 0 10px;
+      color: var(--text);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .control-group {
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .control-group.m1 {
+      border-color: rgba(255,183,77,0.65);
+      box-shadow: 0 0 0 1px rgba(255,183,77,0.25);
+      color: #ffb74d;
+    }
+
+    .control-group.m2 {
+      border-color: rgba(66,165,245,0.65);
+      box-shadow: 0 0 0 1px rgba(66,165,245,0.25);
+      color: #64b5f6;
+    }
+
+    .control-group h3 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .control-group.m1 h3 { color: #ffb74d; }
+    .control-group.m2 h3 { color: #64b5f6; }
+
+    label {
+      font-size: 0.9rem;
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+    }
+
+    .control-group.m1 label,
+    .control-group.m1 .value { color: #ffb74d; }
+    .control-group.m2 label,
+    .control-group.m2 .value { color: #64b5f6; }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-orange);
+    }
+
+    input[type="range"].slider1 { accent-color: var(--accent-orange); }
+    input[type="range"].slider2 { accent-color: var(--accent-blue); }
+
+    .value {
+      font-weight: 700;
+      color: var(--accent-orange);
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: 1px solid var(--panel-border);
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 0.92rem;
+      cursor: pointer;
+      background: linear-gradient(120deg, rgba(255,152,0,0.4), rgba(255,109,0,0.4));
+      color: var(--text);
+      transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+
+    button.secondary {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.15);
+    }
+    button.ghost {
+      background: transparent;
+      border: 1px dashed rgba(255,255,255,0.25);
+      color: var(--muted);
+    }
+
+    button:hover { border-color: var(--accent-orange); }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.45) inset;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    canvas {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.35));
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: var(--shadow);
+      max-width: 100%;
+      display: block;
+    }
+
+    .hint {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 8px;
+      color: var(--text);
+    }
+
+    th, td {
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 6px 8px;
+      text-align: center;
+      background: rgba(255,255,255,0.04);
+    }
+
+    th {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .highlight {
+      background: rgba(255,152,0,0.15);
+    }
+
+    .explanation {
+      font-size: 0.9rem;
+      margin-top: 8px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-block;
+      background: linear-gradient(120deg, rgba(255,152,0,0.4), rgba(255,109,0,0.4));
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .prediction-box {
+      font-size: 0.9rem;
+      background: rgba(255,152,0,0.08);
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px dashed rgba(255,152,0,0.6);
+      margin-top: 8px;
+      color: var(--text);
+    }
+
+    .ball1-color { color: #ffb74d; font-weight: 700; }
+    .ball2-color { color: #64b5f6; font-weight: 700; }
+    .total-color { color: #ffffff; font-weight: 700; }
+
+    @media (max-width: 700px) {
+      h1 { font-size: 1.4rem; }
+      .container { padding: 12px; }
+      .panel { padding: 14px; }
+      .controls-grid { grid-template-columns: 1fr; }
+      button { width: 100%; justify-content: center; text-align: center; }
+      canvas { width: 100% !important; }
+    }
+
+  </style>
+</head>
+<body>
+  <h1>1D Collisions – Momentum vs Energy</h1>
+  <div class="container">
+
+    <!-- CONTROLS -->
+    <div class="panel">
+      <div class="pill">Phase 1 – Choix de la situation & prédiction</div>
+      <h2>Réglez les paramètres, discutez, puis lancez la collision</h2>
+      <div class="controls-grid">
+        <div class="control-group m1">
+          <h3>Bille 1 (à gauche)</h3>
+          <label>
+            Masse m₁ (kg) :
+            <span class="value" id="m1Value">1.0</span>
+            <span style="display:inline-block;width:14px;height:14px;border-radius:999px;background:#ff9800;margin-left:6px;"></span>
+          </label>
+          <input class="slider1" type="range" id="m1Slider" min="0.2" max="3.0" step="0.1" value="1.0">
+          <label>
+            Vitesse initiale v₁ (m/s) :
+            <span class="value" id="v1Value">2.0</span>
+          </label>
+          <input class="slider1" type="range" id="v1Slider" min="-4" max="4" step="0.1" value="2">
+          <div class="hint">Convention : vers la droite = vitesse positive.</div>
+        </div>
+
+        <div class="control-group m2">
+          <h3>Bille 2 (centre, immobile)</h3>
+          <label>
+            Masse m₂ (kg) :
+            <span class="value" id="m2Value">1.0</span>
+            <span style="display:inline-block;width:14px;height:14px;border-radius:999px;background:#42a5f5;margin-left:6px;"></span>
+          </label>
+          <input class="slider2" type="range" id="m2Slider" min="0.2" max="3.0" step="0.1" value="1.0">
+          <label>
+            Vitesse initiale v₂ (m/s) :
+            <span class="value" id="v2Value">0.0</span>
+          </label>
+          <input class="slider2" type="range" id="v2Slider" min="-4" max="4" step="0.1" value="0">
+        </div>
+
+        <div class="control-group">
+          <h3>Scénarios cas 1 / cas 2</h3>
+          <button class="secondary" id="presetCase1">
+            Cas 1
+          </button>
+          <button class="secondary" id="presetCase2">
+            Cas 2
+          </button>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="resetBtn">Réinitialiser positions</button>
+        <button id="startBtn">Lancer la collision</button>
+        <button class="secondary" id="resultsBtn" disabled>Afficher / cacher les résultats</button>
+      </div>
+    </div>
+
+    <!-- CANVAS -->
+    <div class="panel">
+      <div class="pill">Phase 2 – Observation de la collision</div>
+      <h2>Visualisation du mouvement (vue de dessus)</h2>
+      <canvas id="scene"></canvas>
+      <div class="hint">
+        Piste horizontale sans frottement ; la collision est supposée parfaitement élastique.
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="panel" id="resultsPanel" style="display:none;">
+      <div class="pill">Phase 3 – Analyse : momentum vs énergie</div>
+      <h2>Tableau des grandeurs avant et après la collision</h2>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th class="ball1-color">p₁ (kg·m/s)</th>
+            <th class="ball2-color">p₂ (kg·m/s)</th>
+            <th class="total-color">p<sub>total</sub> (kg·m/s)</th>
+            <th class="ball1-color">E<sub>k1</sub> (J)</th>
+            <th class="ball2-color">E<sub>k2</sub> (J)</th>
+            <th class="total-color">E<sub>k,total</sub> (J)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Avant</th>
+            <td id="p1Before" class="ball1-color"></td>
+            <td id="p2Before" class="ball2-color"></td>
+            <td id="pTotBefore" class="highlight total-color"></td>
+            <td id="E1Before" class="ball1-color"></td>
+            <td id="E2Before" class="ball2-color"></td>
+            <td id="ETotBefore" class="highlight total-color"></td>
+          </tr>
+          <tr>
+            <th>Après</th>
+            <td id="p1After" class="ball1-color"></td>
+            <td id="p2After" class="ball2-color"></td>
+            <td id="pTotAfter" class="highlight total-color"></td>
+            <td id="E1After" class="ball1-color"></td>
+            <td id="E2After" class="ball2-color"></td>
+            <td id="ETotAfter" class="highlight total-color"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="explanation">
+        <strong>Idée à faire émerger :</strong><br>
+        • La quantité de mouvement totale se conserve (ligne jaune p<sub>total</sub>) lors de la collision élastique.<br>
+        • L’énergie totale aussi, mais elle ne prédit pas directement “qui repart vite” : la masse joue un rôle différent pour p et pour E.<br>
+        • La quantité de mouvement est la grandeur la plus directement liée à l’<em>effet du choc</em> (ce que chaque bille transmet à l’autre).
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== DOM ELEMENTS =====
+    const m1Slider = document.getElementById('m1Slider');
+    const v1Slider = document.getElementById('v1Slider');
+    const m2Slider = document.getElementById('m2Slider');
+    const v2Slider = document.getElementById('v2Slider');
+
+    const m1Value = document.getElementById('m1Value');
+    const v1Value = document.getElementById('v1Value');
+    const m2Value = document.getElementById('m2Value');
+    const v2Value = document.getElementById('v2Value');
+
+    const resetBtn = document.getElementById('resetBtn');
+    const startBtn = document.getElementById('startBtn');
+    const resultsBtn = document.getElementById('resultsBtn');
+    const presetCase1 = document.getElementById('presetCase1');
+    const presetCase2 = document.getElementById('presetCase2');
+
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+
+    const resultsPanel = document.getElementById('resultsPanel');
+
+    // Results fields
+    const p1Before = document.getElementById('p1Before');
+    const p2Before = document.getElementById('p2Before');
+    const pTotBefore = document.getElementById('pTotBefore');
+    const E1Before = document.getElementById('E1Before');
+    const E2Before = document.getElementById('E2Before');
+    const ETotBefore = document.getElementById('ETotBefore');
+
+    const p1After = document.getElementById('p1After');
+    const p2After = document.getElementById('p2After');
+    const pTotAfter = document.getElementById('pTotAfter');
+    const E1After = document.getElementById('E1After');
+    const E2After = document.getElementById('E2After');
+    const ETotAfter = document.getElementById('ETotAfter');
+
+    // ===== SIMULATION STATE =====
+    let m1 = parseFloat(m1Slider.value);
+    let m2 = parseFloat(m2Slider.value);
+    let v1 = parseFloat(v1Slider.value);
+    let v2 = parseFloat(v2Slider.value);
+
+    // canvas sizing
+    const MAX_WIDTH = 1100;
+    const BASE_ASPECT = 300 / 1100;
+    let viewWidth = 900;
+    let viewHeight = viewWidth * BASE_ASPECT;
+    let dpr = window.devicePixelRatio || 1;
+
+    // positions in pixels (logical units, before DPR scaling)
+    let x1, x2;
+    let y = viewHeight / 2;
+    let r1, r2;
+
+    // for animation
+    let running = false;
+    let lastTime = null;
+    const pixelsPerMeter = 80; // scale: 1 m -> 80 px
+    const wallPadding = 40;
+    let initialE1 = computeKineticEnergy(parseFloat(m1Slider?.value || m1), parseFloat(v1Slider?.value || v1));
+    let initialE2 = computeKineticEnergy(parseFloat(m2Slider?.value || m2), parseFloat(v2Slider?.value || v2));
+
+    function setupCanvas() {
+      dpr = window.devicePixelRatio || 1;
+      const parentWidth = canvas.parentElement.getBoundingClientRect().width || MAX_WIDTH;
+      const innerWidth = Math.max(parentWidth - 24, 320);
+      viewWidth = Math.min(MAX_WIDTH, innerWidth);
+      viewHeight = viewWidth * BASE_ASPECT;
+      canvas.style.width = `${viewWidth}px`;
+      canvas.style.height = `${viewHeight}px`;
+      canvas.width = viewWidth * dpr;
+      canvas.height = viewHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      y = viewHeight / 2;
+    }
+
+    function updateValuesFromSliders() {
+      m1 = parseFloat(m1Slider.value);
+      v1 = parseFloat(v1Slider.value);
+      m2 = parseFloat(m2Slider.value);
+      v2 = parseFloat(v2Slider.value);
+
+      m1Value.textContent = m1.toFixed(1);
+      v1Value.textContent = v1.toFixed(1);
+      m2Value.textContent = m2.toFixed(1);
+      v2Value.textContent = v2.toFixed(1);
+
+      // Rayons exagérés pour mieux percevoir la différence de masse
+      r1 = 14 + 18 * Math.cbrt(m1 / 1.0);
+      r2 = 14 + 18 * Math.cbrt(m2 / 1.0);
+
+      if (!running) {
+        initialE1 = computeKineticEnergy(m1, v1);
+        initialE2 = computeKineticEnergy(m2, v2);
+        resetPositions();
+        drawScene();
+      }
+    }
+
+    function resetPositions() {
+      // Bille 2 au centre, bille 1 à gauche
+      x2 = viewWidth / 2;
+      x1 = wallPadding + r1;
+      // s'assurer qu'elles ne se chevauchent pas
+      if (x1 + r1 > x2 - r2 - 10) {
+        x1 = x2 - r2 - r1 - 20;
+      }
+    }
+
+    function drawTrack() {
+      // simple horizontal track
+      ctx.strokeStyle = "#2e323a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(wallPadding/2, y);
+      ctx.lineTo(viewWidth - wallPadding/2, y);
+      ctx.stroke();
+
+      // walls
+      ctx.fillStyle = "#41454f";
+      ctx.fillRect(10, y - 40, 10, 80);
+      ctx.fillRect(viewWidth - 20, y - 40, 10, 80);
+    }
+
+    function drawBall(x, r, color, label) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    function drawVelocityArrow(x, r, v, color) {
+      if (Math.abs(v) < 0.05) return;
+      const direction = Math.sign(v);
+      const L = 30 + 12 * Math.abs(v); // longueur proportionnelle à |v|
+      const startX = x;
+      const endX = x + direction * (L + r);
+      const yArrow = y;
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.fillStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(startX, yArrow);
+      ctx.lineTo(endX, yArrow);
+      ctx.stroke();
+
+      // pointe de flèche
+      ctx.beginPath();
+      ctx.moveTo(endX, yArrow);
+      ctx.lineTo(endX - direction * 10, yArrow - 6);
+      ctx.lineTo(endX - direction * 10, yArrow + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // valeur
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(`v = ${v.toFixed(1)} m/s`, startX + direction * (L / 2), yArrow - 16);
+    }
+
+    function drawScene() {
+      ctx.clearRect(0, 0, viewWidth, viewHeight);
+      drawTrack();
+      const color1 = "#ff9800"; // orange
+      const color2 = "#42a5f5"; // bleu
+      drawBall(x1, r1, color1);
+      drawBall(x2, r2, color2);
+      drawVelocityArrow(x1, r1, v1, color1);
+      drawVelocityArrow(x2, r2, v2, color2);
+
+      // Énergie cinétique initiale (affichée en bas)
+      ctx.fillStyle = "#f5f7fb";
+      ctx.font = "bold 12px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(`Eₖ init m₁ = ${initialE1.toFixed(2)} J`, viewWidth / 2 - 140, viewHeight - 10);
+      ctx.fillText(`Eₖ init m₂ = ${initialE2.toFixed(2)} J`, viewWidth / 2 + 140, viewHeight - 10);
+    }
+
+    // ===== PHYSICS =====
+    function computeKineticEnergy(m, v) {
+      return 0.5 * m * v * v;
+    }
+
+    function updateResults(before, after) {
+      p1Before.textContent = before.p1.toFixed(2);
+      p2Before.textContent = before.p2.toFixed(2);
+      pTotBefore.textContent = before.pTotal.toFixed(2);
+      E1Before.textContent = before.E1.toFixed(2);
+      E2Before.textContent = before.E2.toFixed(2);
+      ETotBefore.textContent = before.ETotal.toFixed(2);
+
+      p1After.textContent = after.p1.toFixed(2);
+      p2After.textContent = after.p2.toFixed(2);
+      pTotAfter.textContent = after.pTotal.toFixed(2);
+      E1After.textContent = after.E1.toFixed(2);
+      E2After.textContent = after.E2.toFixed(2);
+      ETotAfter.textContent = after.ETotal.toFixed(2);
+    }
+
+    function computeState(m1, v1, m2, v2) {
+      const p1 = m1 * v1;
+      const p2 = m2 * v2;
+      const pTotal = p1 + p2;
+      const E1 = computeKineticEnergy(m1, v1);
+      const E2 = computeKineticEnergy(m2, v2);
+      const ETotal = E1 + E2;
+      return { p1, p2, pTotal, E1, E2, ETotal };
+    }
+
+    function handleCollision() {
+      // 1D elastic collision formulas
+      const newV1 = ((m1 - m2) / (m1 + m2)) * v1 + (2 * m2 / (m1 + m2)) * v2;
+      const newV2 = (2 * m1 / (m1 + m2)) * v1 + ((m2 - m1) / (m1 + m2)) * v2;
+      v1 = newV1;
+      v2 = newV2;
+    }
+
+    function handleWallCollisions() {
+      // Left wall for ball 1
+      if (x1 - r1 <= wallPadding / 2 + 10 && v1 < 0) {
+        v1 = -v1;
+      }
+      // Right wall for ball 2
+      if (x2 + r2 >= viewWidth - wallPadding / 2 - 10 && v2 > 0) {
+        v2 = -v2;
+      }
+    }
+
+    function stepSimulation(timestamp) {
+      if (!running) return;
+      if (!lastTime) lastTime = timestamp;
+      const dt = (timestamp - lastTime) / 1000; // in seconds
+      lastTime = timestamp;
+
+      // Update positions
+      x1 += v1 * pixelsPerMeter * dt;
+      x2 += v2 * pixelsPerMeter * dt;
+
+      // Check for collision between balls
+      const distance = Math.abs(x2 - x1);
+      const minDistance = r1 + r2;
+
+      // Condition: overlapping + approaching each other
+      if (distance <= minDistance && (v1 > v2)) {
+        // Move them just to touching distance to avoid sticking
+        const overlap = minDistance - distance;
+        const direction = (x2 > x1) ? 1 : -1;
+        x1 -= direction * overlap / 2;
+        x2 += direction * overlap / 2;
+
+        handleCollision();
+      }
+
+      // Collisions with walls (optionnel)
+      handleWallCollisions();
+
+      drawScene();
+
+      // Stop simulation after some time if everything is slow
+      // Condition simple: si les vitesses sont devenues très petites, on arrête
+      if (Math.abs(v1) < 0.02 && Math.abs(v2) < 0.02) {
+        running = false;
+        startBtn.disabled = false;
+        return;
+      }
+
+      requestAnimationFrame(stepSimulation);
+    }
+
+    // ===== EVENT LISTENERS =====
+    [m1Slider, v1Slider, m2Slider, v2Slider].forEach(slider => {
+      slider.addEventListener('input', updateValuesFromSliders);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      running = false;
+      startBtn.disabled = false;
+      initialE1 = computeKineticEnergy(m1, v1);
+      initialE2 = computeKineticEnergy(m2, v2);
+      updateValuesFromSliders();
+      drawScene();
+    });
+
+    startBtn.addEventListener('click', () => {
+      // Before state
+      const before = computeState(m1, v1, m2, v2);
+
+      // Reset positions (but keep velocities)
+      resetPositions();
+      drawScene();
+
+      // After state will be computed from theory (1D elastic collision)
+      const theoreticalV1 = ((m1 - m2) / (m1 + m2)) * v1 + (2 * m2 / (m1 + m2)) * v2;
+      const theoreticalV2 = (2 * m1 / (m1 + m2)) * v1 + ((m2 - m1) / (m1 + m2)) * v2;
+      const after = computeState(m1, theoreticalV1, m2, theoreticalV2);
+      updateResults(before, after);
+
+      resultsBtn.disabled = false;
+      resultsPanel.style.display = "none"; // caché au départ, pour laisser place à la prédiction
+
+      // Set velocities for the actual animation
+      v1 = parseFloat(v1Slider.value);
+      v2 = parseFloat(v2Slider.value);
+      initialE1 = computeKineticEnergy(m1, v1);
+      initialE2 = computeKineticEnergy(m2, v2);
+
+      running = true;
+      startBtn.disabled = true;
+      lastTime = null;
+      requestAnimationFrame(stepSimulation);
+    });
+
+    resultsBtn.addEventListener('click', () => {
+      if (resultsPanel.style.display === "none") {
+        resultsPanel.style.display = "block";
+      } else {
+        resultsPanel.style.display = "none";
+      }
+    });
+
+    presetCase1.addEventListener('click', () => {
+      // Cas 1 : m1 légère & rapide, m2 immobile au centre
+      m1Slider.value = 0.2;
+      v1Slider.value = 3.0;
+      m2Slider.value = 1.0;
+      v2Slider.value = 0;
+      updateValuesFromSliders();
+      initialE1 = computeKineticEnergy(m1, v1);
+      initialE2 = computeKineticEnergy(m2, v2);
+      drawScene();
+    });
+
+    presetCase2.addEventListener('click', () => {
+      // Cas 2 : m1 lourde & lente, m2 immobile au centre
+      m1Slider.value = 2.5;
+      v1Slider.value = 0.8;
+      m2Slider.value = 1.0;
+      v2Slider.value = 0;
+      updateValuesFromSliders();
+      initialE1 = computeKineticEnergy(m1, v1);
+      initialE2 = computeKineticEnergy(m2, v2);
+      drawScene();
+    });
+
+    // Init
+    function initialize() {
+      setupCanvas();
+      updateValuesFromSliders();
+      resetPositions();
+      drawScene();
+    }
+
+    window.addEventListener('resize', () => {
+      initialize();
+    });
+
+    // Init
+    initialize();
+  </script>
+</body>
+</html>
